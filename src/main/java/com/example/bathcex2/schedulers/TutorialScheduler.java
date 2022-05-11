@@ -1,23 +1,27 @@
 package com.example.bathcex2.schedulers;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobExecutionException;
-import org.springframework.batch.core.JobParametersBuilder;
+import org.quartz.JobExecutionContext;
+import org.springframework.batch.core.*;
+import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
-@Component
-@RequiredArgsConstructor
-public class TutorialScheduler {
-    private final Job job; //tutorial job
-    private final JobLauncher jobLauncher;
+public class TutorialScheduler extends QuartzJobBean {
+    @Autowired
+    private Job job; //tutorial job
+    @Autowired
+    private JobLauncher jobLauncher;
+    @Autowired
+    private JobExplorer jobExplore;
 
-    //5초마다 실행
+/*    //5초마다 실행
     @Scheduled(fixedDelay = 5*1000L)
     public void executeJob(){
         try {
@@ -31,5 +35,22 @@ public class TutorialScheduler {
             System.out.println(ex.getMessage());
             ex.printStackTrace();
         }
+    }*/
+
+    @Override //스케줄링 된 이벤트가 발생할 때마다 1번씩 호출
+    protected void executeInternal(JobExecutionContext context) throws org.quartz.JobExecutionException {
+        JobParameters jobParameters = new JobParametersBuilder(this.jobExplore)
+                .getNextJobParameters(this.job)
+                .toJobParameters();
+
+        try {
+            this.jobLauncher.run(this.job, jobParameters);
+
+        } catch (JobExecutionException ex) {
+            System.out.println(ex.getMessage());
+            ex.printStackTrace();
+        }
+
+
     }
 }
